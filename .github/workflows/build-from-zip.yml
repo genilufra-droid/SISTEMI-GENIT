@@ -1,97 +1,96 @@
-```yaml
 name: Build APK From ZIP
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-      - master
+workflow_dispatch:
+push:
+branches:
+- main
+- master
 
 jobs:
-  build-apk:
-    name: Generate APK From Uploaded ZIP
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+build-apk:
+name: Generate APK From Uploaded ZIP
+runs-on: ubuntu-latest
+timeout-minutes: 60
 
-    env:
-      CI: true
-      EXPO_NO_TELEMETRY: "1"
-      NODE_OPTIONS: --max_old_space_size=4096
-      GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1024m"
+```
+env:
+  CI: true
+  EXPO_NO_TELEMETRY: "1"
+  NODE_OPTIONS: --max_old_space_size=4096
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1024m"
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
 
-      - name: Find ZIP and extract source
-        run: |
-          ZIP_FILE="$(ls -t *.zip 2>/dev/null | head -n 1)"
-          if [ -z "$ZIP_FILE" ]; then
-            echo "Nuk u gjet asnje ZIP ne root te repository."
-            exit 1
-          fi
+  - name: Find ZIP and extract source
+    run: |
+      ZIP_FILE="$(ls -t *.zip 2>/dev/null | head -n 1)"
+      if [ -z "$ZIP_FILE" ]; then
+        echo "Nuk u gjet asnje ZIP ne root te repository."
+        exit 1
+      fi
 
-          echo "Duke hapur ZIP: $ZIP_FILE"
-          mkdir -p source
-          unzip -q "$ZIP_FILE" -d source
+      echo "Duke hapur ZIP: $ZIP_FILE"
+      rm -rf source
+      mkdir -p source
+      unzip -q "$ZIP_FILE" -d source
 
-          PROJECT_DIR="$(find source -maxdepth 4 -name package.json -print -quit | xargs dirname)"
-          if [ -z "$PROJECT_DIR" ]; then
-            echo "Nuk u gjet package.json brenda ZIP-it."
-            exit 1
-          fi
+      PROJECT_DIR="$(find source -maxdepth 4 -name package.json -print -quit | xargs dirname)"
+      if [ -z "$PROJECT_DIR" ]; then
+        echo "Nuk u gjet package.json brenda ZIP-it."
+        exit 1
+      fi
 
-          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
-          echo "Projekti u gjet te: $PROJECT_DIR"
+      echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+      echo "Projekti u gjet te: $PROJECT_DIR"
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.12.0
+  - name: Setup pnpm
+    uses: pnpm/action-setup@v4
+    with:
+      version: 9.12.0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: "**/pnpm-lock.yaml"
+  - name: Setup Node.js
+    uses: actions/setup-node@v4
+    with:
+      node-version: 22
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
+  - name: Setup Java
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: 17
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+  - name: Setup Android SDK
+    uses: android-actions/setup-android@v3
 
-      - name: Install dependencies
-        run: |
-          cd "$PROJECT_DIR"
-          pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+  - name: Install dependencies
+    run: |
+      cd "$PROJECT_DIR"
+      pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
 
-      - name: Generate native Android project
-        run: |
-          cd "$PROJECT_DIR"
-          npx expo prebuild --platform android --clean --non-interactive
+  - name: Generate Android project
+    run: |
+      cd "$PROJECT_DIR"
+      npx expo prebuild --platform android --clean --non-interactive
 
-      - name: Build release APK
-        run: |
-          cd "$PROJECT_DIR/android"
-          chmod +x gradlew
-          ./gradlew assembleRelease --stacktrace --no-daemon
+  - name: Build release APK
+    run: |
+      cd "$PROJECT_DIR/android"
+      chmod +x gradlew
+      ./gradlew assembleRelease --stacktrace --no-daemon
 
-      - name: Prepare APK artifact
-        run: |
-          mkdir -p apk
-          cp "$PROJECT_DIR"/android/app/build/outputs/apk/release/*.apk apk/Sistemi_Genit_release.apk
-          ls -lh apk
+  - name: Prepare APK artifact
+    run: |
+      mkdir -p apk
+      cp "$PROJECT_DIR"/android/app/build/outputs/apk/release/*.apk apk/Sistemi_Genit_release.apk
+      ls -lh apk
 
-      - name: Upload release APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Sistemi_Genit_release_apk
-          path: apk/Sistemi_Genit_release.apk
-          if-no-files-found: error
+  - name: Upload release APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: Sistemi_Genit_release_apk
+      path: apk/Sistemi_Genit_release.apk
+      if-no-files-found: error
 ```
