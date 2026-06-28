@@ -93,9 +93,3 @@ jobs:
           name: Sistemi_Genit_release_apk
           path: apk/Sistemi_Genit_release.apk
           if-no-files-found: error
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Sistemi_Genit_debug_apk
-          path: apk/Sistemi_Genit_debug.apk
-          if-no-files-found: error
