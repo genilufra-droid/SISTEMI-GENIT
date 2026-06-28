@@ -75,18 +75,24 @@ jobs:
           cd "$PROJECT_DIR"
           npx expo prebuild --platform android --clean --non-interactive
 
-      - name: Build debug APK
+      - name: Build release APK
         run: |
           cd "$PROJECT_DIR/android"
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace --no-daemon
+          ./gradlew assembleRelease --stacktrace --no-daemon
 
       - name: Prepare APK artifact
         run: |
           mkdir -p apk
-          cp "$PROJECT_DIR"/android/app/build/outputs/apk/debug/*.apk apk/Sistemi_Genit_debug.apk
+          cp "$PROJECT_DIR"/android/app/build/outputs/apk/release/*.apk apk/Sistemi_Genit_release.apk
           ls -lh apk
 
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sistemi_Genit_release_apk
+          path: apk/Sistemi_Genit_release.apk
+          if-no-files-found: error
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
